@@ -8,14 +8,14 @@
 namespace Actinarium\Finediff\Core;
 
 
-interface Searchable
+interface IndexedSequence extends Sequence
 {
     /**
-     * Finds indices where given data string appears
+     * Finds indices where given data string appears.
      *
      * @param string $data
      *
-     * @return int[]
+     * @return int[]|null A sorted array of indices having given data, or null if data is not found
      */
     public function findOccurrences($data);
 } 

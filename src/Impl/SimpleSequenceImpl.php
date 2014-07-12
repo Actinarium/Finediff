@@ -8,19 +8,18 @@
 namespace Actinarium\Finediff\Impl;
 
 
-use Actinarium\Finediff\Core\Searchable;
-use Actinarium\Finediff\Core\Sequence;
+use Actinarium\Finediff\Core\IndexedSequence;
 
-class SimpleSequenceImpl implements Searchable, Sequence
+class SimpleSequenceImpl implements IndexedSequence
 {
     /** @var  string[] */
     protected $data;
-    /** @var  int|null */
+    /** @var  null|int */
     protected $length;
-    /** @var  array[] */
+    /** @var  null|array[] */
     protected $dictionary;
 
-    public function __construct(array $data = null)
+    public function __construct(array $data)
     {
         $this->data = $data;
     }
@@ -30,14 +29,14 @@ class SimpleSequenceImpl implements Searchable, Sequence
      *
      * @param string $data
      *
-     * @return int[]
+     * @return int[]|null  A sorted array of indices having given data, or null if data is not found
      */
     public function findOccurrences($data)
     {
         if ($this->dictionary === null) {
             $this->fillDictionary();
         }
-        return array_key_exists($data, $this->dictionary) ? $this->dictionary[$data] : array();
+        return isset($this->dictionary[$data]) ? $this->dictionary[$data] : null;
     }
 
     /**
@@ -59,8 +58,17 @@ class SimpleSequenceImpl implements Searchable, Sequence
         return $this->length;
     }
 
-    /**
-     *
-     */
-    protected function fillDictionary() { }
+    protected function fillDictionary()
+    {
+        foreach ($this->data as $index => $line) {
+            // It's assumed that lines are never null, otherwise isset won't work
+            if (isset($this->dictionary[$line])) {
+                // Add to existing record
+                $this->dictionary[$line][] = $index;
+            } else {
+                // Create a new record with one element
+                $this->dictionary[$line] = array($index);
+            }
+        }
+    }
 }

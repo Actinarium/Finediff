@@ -14,8 +14,7 @@ class DefaultStringComparisonStrategy implements StringComparisonStrategy
 {
 
     /**
-     * Verify if two given strings are equal by simply comparing them byte by byte. The method relies on the fact that
-     * two provided parameters must be strings, otherwise the result is unpredictable (type juggling may occur)
+     * Verify if two given strings are equal by simply comparing them using === operator (the fastest way)
      *
      * @param string $stringA
      * @param string $stringB
@@ -24,6 +23,6 @@ class DefaultStringComparisonStrategy implements StringComparisonStrategy
      */
     public function areEqual($stringA, $stringB)
     {
-        return strcmp($stringA, $stringB) === 0;
+        return $stringA === $stringB;
     }
 }
