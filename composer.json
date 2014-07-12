@@ -1,0 +1,34 @@
+{
+    "name"              : "actinarium/finediff",
+    "description"       : "An extensible PHP library for calculating difference between two texts",
+    "keywords"          : ["diff"],
+    "minimum-stability" : "stable",
+    "license"           : "BSD-3-Clause",
+    "authors"           : [
+        {
+            "name"     : "Python community",
+            "role"     : "Original implementation of this diff algorithm",
+            "homepage" : "http://svn.python.org/projects/stackless/trunk/Lib/difflib.py"
+        },
+        {
+            "name"     : "Chris Boulton",
+            "role"     : "Ported the algorithm from Python to PHP, which is used as a reference",
+            "homepage" : "http://github.com/chrisboulton"
+        },
+        {
+            "name"  : "Actine",
+            "role"  : "Developer",
+            "email" : "actine@actinarium.com"
+        }
+    ],
+
+    "require" : {
+        "php" : ">=5.3"
+    },
+
+    "autoload" : {
+        "psr-4" : {
+            "Actinarium\\Finediff\\" : ["./src/"]
+        }
+    }
+}
