@@ -21,25 +21,34 @@ use Actinarium\Finediff\Core\StringComparisonStrategy;
  */
 class SimpleLCCSFinder implements LCCSFinder
 {
+    /** @var  StringComparisonStrategy */
+    private $strategy;
+
+    /**
+     * @param StringComparisonStrategy $strategy The string comparison strategy used to verify whether strings are
+     *                                           equal (can be one of bundled solutions or a custom one)
+     */
+    public function __construct(StringComparisonStrategy $strategy)
+    {
+        $this->strategy = $strategy;
+    }
+
     /**
      * Compares two sequences to find the longest common contiguous sub-sequence. Supports setting the ranges of
      * sequences to search within so that we can pass the same sequence around with different ranges instead of
      * inefficiently copying arrays
      *
-     * @param IndexedSequence          $base     Base sequence, which the second sequence will be compared against. The
-     *                                           base sequence is the one that gets indexed for faster search (given
-     *                                           you use the default implementation of Sequence), so if you need to
-     *                                           compare multiple sequences against one, use it as a base
-     * @param Sequence                 $test     The sequence to compare against the base
-     * @param StringComparisonStrategy $strategy The string comparison strategy used to verify whether strings are
-     *                                           equal (can be one of bundled solutions or a custom one)
-     * @param RangePair                $ranges   If set, look only within given range of items in given sequences (left
-     *                                           range is for base, right range is for second sequence)
+     * @param IndexedSequence $base     Base sequence, which the second sequence will be compared against. The
+     *                                  base sequence is the one that gets indexed for faster search (given
+     *                                  you use the default implementation of Sequence), so if you need to
+     *                                  compare multiple sequences against one, use it as a base
+     * @param Sequence        $test     The sequence to compare against the base
+     * @param RangePair       $ranges   If set, look only within given range of items in given sequences (left
+     *                                  range is for base, right range is for second sequence)
      *
      * @return RangePair|null Pair of ranges where match was found, or null in case of no match
      */
-    public function find(IndexedSequence $base, Sequence $test, StringComparisonStrategy $strategy,
-                         RangePair $ranges = null)
+    public function find(IndexedSequence $base, Sequence $test, RangePair $ranges = null)
     {
         // If ranges are not set, initialize them with zero to last indices of given sequences
         if ($ranges == null) {
@@ -85,7 +94,7 @@ class SimpleLCCSFinder implements LCCSFinder
                 $offset = 1;
                 while ($matchIndex + $offset <= $ranges->getRangeLeft()->getIndexHigh()
                     && $pointer + $offset <= $ranges->getRangeRight()->getIndexHigh()
-                    && $strategy->areEqual($baseArray[$matchIndex + $offset], $testArray[$pointer + $offset])
+                    && $this->strategy->areEqual($baseArray[$matchIndex + $offset], $testArray[$pointer + $offset])
                 ) {
                     $offset++;
                 }
@@ -97,7 +106,7 @@ class SimpleLCCSFinder implements LCCSFinder
                     $negativeOffset = 1;
                     while ($matchIndex - $negativeOffset >= $ranges->getRangeLeft()->getIndexLow()
                         && $pointer - $negativeOffset >= $ranges->getRangeRight()->getIndexLow()
-                        && $strategy->areEqual(
+                        && $this->strategy->areEqual(
                                     $baseArray[$matchIndex - $negativeOffset],
                                     $testArray[$pointer - $negativeOffset]
                         )
