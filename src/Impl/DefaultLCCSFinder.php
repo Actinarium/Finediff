@@ -19,7 +19,7 @@ use Actinarium\Finediff\Core\StringComparisonStrategy;
  *
  * @package Actinarium\Finediff\SequenceMatcher
  */
-class SimpleLCCSFinder implements LCCSFinder
+class DefaultLCCSFinder implements LCCSFinder
 {
     /** @var  StringComparisonStrategy */
     private $strategy;

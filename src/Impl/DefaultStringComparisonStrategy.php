@@ -12,7 +12,6 @@ use Actinarium\Finediff\Core\StringComparisonStrategy;
 
 class DefaultStringComparisonStrategy implements StringComparisonStrategy
 {
-
     /**
      * Verify if two given strings are equal by simply comparing them using === operator (the fastest way)
      *
