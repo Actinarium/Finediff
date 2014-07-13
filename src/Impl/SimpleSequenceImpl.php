@@ -58,6 +58,17 @@ class SimpleSequenceImpl implements IndexedSequence
         return $this->length;
     }
 
+    /**
+     * Returns true if all lines were indexed, and false if index is partial (e.g. frequent items removed like in
+     * difflib.py)
+     *
+     * @return bool Always true for this implementation
+     */
+    public function isIndexComplete()
+    {
+        return true;
+    }
+
     protected function fillDictionary()
     {
         foreach ($this->data as $index => $line) {

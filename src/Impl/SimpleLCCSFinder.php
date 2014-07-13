@@ -66,7 +66,7 @@ class SimpleLCCSFinder implements LCCSFinder
         while ($pointer <= $last) {
             $matchIndices = $base->findOccurrences($testArray[$pointer]);
             if ($matchIndices === null) {
-                // No match found, increment the pointer and continue
+                // No match found, move on to the next line
                 $pointer++;
                 continue;
             }
@@ -76,8 +76,10 @@ class SimpleLCCSFinder implements LCCSFinder
                     continue;
                 } elseif ($matchIndex > $ranges->getRangeLeft()->getIndexHigh()) {
                     // Since indices are sorted, at this point we know we won't have any more matches in given window
+                    $pointer++;
                     break;
                 }
+
                 // Otherwise for current match look-ahead how many elements will contiguously match within window
                 // from this starting point (offset is 1 because the element at current pointer is a match already)
                 $offset = 1;
@@ -87,19 +89,34 @@ class SimpleLCCSFinder implements LCCSFinder
                 ) {
                     $offset++;
                 }
+
+                // If we are "optimizing" our index like difflib.py by removing frequent dict items, we should also do
+                // look-behind here to find skipped but real (non-indexed) matches before the block
+                $negativeOffset = 0;
+                if (!$base->isIndexComplete()) {
+                    $negativeOffset = 1;
+                    while ($matchIndex - $negativeOffset >= $ranges->getRangeLeft()->getIndexLow()
+                        && $pointer - $negativeOffset >= $ranges->getRangeRight()->getIndexLow()
+                        && $strategy->areEqual(
+                                    $baseArray[$matchIndex - $negativeOffset],
+                                    $testArray[$pointer - $negativeOffset]
+                        )
+                    ) {
+                        $negativeOffset++;
+                    }
+                }
+
                 // At this point offset will hold the number of elements contiguously matched
                 if ($offset > $bestMatchLength) {
-                    $bestMatchLength = $offset;
-                    $bestTestLowIndex = $pointer;
-                    $bestBaseLowIndex = $matchIndex;
+                    $bestMatchLength = $offset + $negativeOffset;
+                    $bestTestLowIndex = $pointer - $negativeOffset;
+                    $bestBaseLowIndex = $matchIndex - $negativeOffset;
                 }
-                // Leap the pointer, because there's no reason to go over matched lines again
+
+                // Leap the pointer forward, because there's no reason to go over matched lines again
                 $pointer += $offset;
             }
         }
-
-        // If we were "optimizing" our index like difflib.py by removing popular dict items, we would add additional
-        // expanding here (i.e. looking behind the bestLowIndex and expand the match). But we don't, so we're done
 
         if ($bestMatchLength === 0) {
             return null;

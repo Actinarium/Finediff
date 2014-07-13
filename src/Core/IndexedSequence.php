@@ -18,4 +18,12 @@ interface IndexedSequence extends Sequence
      * @return int[]|null A sorted array of indices having given data, or null if data is not found
      */
     public function findOccurrences($data);
+
+    /**
+     * Returns true if all lines were indexed, and false if index is partial (e.g. frequent items removed like in
+     * difflib.py)
+     *
+     * @return bool
+     */
+    public function isIndexComplete();
 } 
