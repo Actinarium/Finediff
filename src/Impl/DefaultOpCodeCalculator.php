@@ -10,16 +10,72 @@ namespace Actinarium\Finediff\Impl;
 
 use Actinarium\Finediff\Core\IndexedSequence;
 use Actinarium\Finediff\Core\LCCSFinder;
+use Actinarium\Finediff\Core\OpCodeCalculator;
 use Actinarium\Finediff\Core\Sequence;
 
-class DefaultOpCodeCalculator
+class DefaultOpCodeCalculator implements OpCodeCalculator
 {
     /** @var  LCCSFinder */
     private $matchFinder;
 
+    /**
+     * @param LCCSFinder $matchFinder Implementation of longest common contiguous sub-sequence finder (default or
+     *                                custom)
+     */
     public function __construct(LCCSFinder $matchFinder)
     {
         $this->matchFinder = $matchFinder;
+    }
+
+    /**
+     * Calculate sequence of opcodes for given matching blocks
+     *
+     * @param IndexedSequence $base     Base sequence, which the second sequence will be compared against. The
+     *                                  base sequence is the one that gets indexed for faster search (given
+     *                                  you use the default implementation of Sequence), so if you need to
+     *                                  compare multiple sequences against one, use it as a base
+     * @param Sequence        $test     The sequence to compare against the base
+     *
+     * @return OpCode[] Sequence of opcodes
+     */
+    public function getOpCodes(IndexedSequence $base, Sequence $test)
+    {
+        // Initialize pointers to store last matching block ends, and an array for opcodes
+        $pointerLeft = 0;
+        $pointerRight = 0;
+        $opCodes = array();
+
+        $blocksMetadata = $this->getMatchingBlocks($base, $test);
+        $matchingBlocks = & $blocksMetadata->getMatchingBlocks();
+
+        foreach ($matchingBlocks as &$block) {
+            $matchOpCode = new OpCode($block);
+            $matchOpCode->setOperation(OpCode::EQUAL);
+
+            // Check for the opcode between the last and current matching blocks
+            $extraOpCode = $this->getOpCodeBefore($block, $pointerLeft, $pointerRight);
+            if ($extraOpCode !== null) {
+                $opCodes[] = $extraOpCode;
+            }
+
+            $opCodes[] = $matchOpCode;
+
+            // Move the pointers to the next after current match
+            $pointerLeft = $matchOpCode->getRangeLeft()->getIndexHigh() + 1;
+            $pointerRight = $matchOpCode->getRangeRight()->getIndexHigh() + 1;
+        }
+
+        // Check whether there's a block after the last matching block before the end of sequences
+        $bogusPair = new RangePair(
+            new Range($blocksMetadata->getLengthLeft(), $blocksMetadata->getLengthLeft()),
+            new Range($blocksMetadata->getLengthRight(), $blocksMetadata->getLengthRight())
+        );
+        $lastOpCode = $this->getOpCodeBefore($bogusPair, $pointerLeft, $pointerRight);
+        if ($lastOpCode !== null) {
+            $opCodes[] = $lastOpCode;
+        }
+
+        return $opCodes;
     }
 
     /**
@@ -34,7 +90,7 @@ class DefaultOpCodeCalculator
      * @return BlocksMetadata Range pairs for blocks that matched in both sequences, sorted by their appearance order.
      *                        Left range always corresponds to base, right range corresponds to test
      */
-    public function getMatchingBlocks(IndexedSequence $base, Sequence $test)
+    private function getMatchingBlocks(IndexedSequence $base, Sequence $test)
     {
         $fullRanges = new RangePair(
             new Range(0, $base->getLength() - 1),
@@ -91,57 +147,9 @@ class DefaultOpCodeCalculator
     }
 
     /**
-     * Calculate sequence of opcodes for given matching blocks
-     *
-     * @param BlocksMetadata $blocksMetadata An array of range pairs describing matches in sequences, <b>sorted</b>
-     *                                       by their appearance in the sequences (otherwise will misbehave!)
-     *
-     * @return OpCode[] Sequence of opcodes
-     * @throws \LogicException In case of solar eclipse
-     */
-    public function getOpCodes(BlocksMetadata $blocksMetadata)
-    {
-        // Initialize pointers to store last matching block ends, and an array for opcodes
-        $pointerLeft = 0;
-        $pointerRight = 0;
-        $opCodes = array();
-
-        $matchingBlocks = & $blocksMetadata->getMatchingBlocks();
-
-        foreach ($matchingBlocks as &$block) {
-            $matchOpCode = new OpCode($block);
-            $matchOpCode->setOperation(OpCode::EQUAL);
-
-            // Check for the opcode between the last and current matching blocks
-            $extraOpCode = $this->getOpCodeBefore($block, $pointerLeft, $pointerRight);
-            if ($extraOpCode !== null) {
-                $opCodes[] = $extraOpCode;
-            }
-
-            $opCodes[] = $matchOpCode;
-
-            // Move the pointers to the next after current match
-            $pointerLeft = $matchOpCode->getRangeLeft()->getIndexHigh() + 1;
-            $pointerRight = $matchOpCode->getRangeRight()->getIndexHigh() + 1;
-        }
-
-        // Check whether there's a block after the last matching block before the end of sequences
-        $bogusPair = new RangePair(
-            new Range($blocksMetadata->getLengthLeft(), $blocksMetadata->getLengthLeft()),
-            new Range($blocksMetadata->getLengthRight(), $blocksMetadata->getLengthRight())
-        );
-        $lastOpCode = $this->getOpCodeBefore($bogusPair, $pointerLeft, $pointerRight);
-        if ($lastOpCode !== null) {
-            $opCodes[] = $lastOpCode;
-        }
-
-        return $opCodes;
-    }
-
-    /**
      * Sort matching blocks by their order in the sequence
      *
-     * @param array $matchingBlocks
+     * @param RangePair[] $matchingBlocks
      */
     private function sortMatchingBlocks(array &$matchingBlocks)
     {
@@ -154,7 +162,7 @@ class DefaultOpCodeCalculator
     }
 
     /**
-     * Determine if there is a block between given block and two pointers
+     * Determine if there is a block between given block and a pair of pointers
      *
      * @param RangePair $block        Given (next) block
      * @param int       $pointerLeft  Pointer in the left sequence (index at element following the one from last match)

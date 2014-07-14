@@ -80,4 +80,50 @@ class Range
     {
         return new Range($indexLow, $this->indexHigh);
     }
+
+    /**
+     * Increase low and decrease high pointers by offset
+     *
+     * @param int $offset
+     *
+     * @return Range|null Shrank range, or null if the range would cease as a result of shrink
+     */
+    public function shrink($offset)
+    {
+        $newLow = $this->indexLow + $offset;
+        $newHigh = $this->indexHigh - $offset;
+        if ($newLow <= $newHigh) {
+            return new Range($newLow, $newHigh);
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Decrease low and increase high pointers by offset within given bounds
+     *
+     * @param int        $offset
+     * @param Range|null $bounds If given, will limit pointers to be within given range. If null, bottom will be limited
+     *                           by 0, and top is not limited
+     *
+     * @return Range Expanded range
+     */
+    public function expand($offset, Range $bounds = null)
+    {
+        $newLow = $this->indexLow - $offset;
+        $newHigh = $this->indexHigh + $offset;
+        if ($bounds !== null) {
+            if ($newLow < $bounds->getIndexLow()) {
+                $newLow = $bounds->getIndexLow();
+            }
+            if ($newHigh > $bounds->getIndexHigh()) {
+                $newHigh = $bounds->getIndexHigh();
+            }
+        } else {
+            if ($newLow < 0) {
+                $newLow = 0;
+            }
+        }
+        return new Range($newLow, $newHigh);
+    }
 }

@@ -19,10 +19,12 @@ class OpCode extends RangePair
     /** @var  int */
     private $operation;
 
-    public function __construct(RangePair $pair)
+    public function __construct(RangePair $pair = null)
     {
-        $this->rangeLeft = $pair->getRangeLeft();
-        $this->rangeRight = $pair->getRangeRight();
+        if ($pair !== null) {
+            $this->rangeLeft = $pair->getRangeLeft();
+            $this->rangeRight = $pair->getRangeRight();
+        }
     }
 
     /**
@@ -42,5 +44,23 @@ class OpCode extends RangePair
     public function getOperation()
     {
         return $this->operation;
+    }
+
+    /**
+     * Get a reverse operational code that defines a change from test sequence to base
+     *
+     * @return OpCode Operational code reverted to current
+     */
+    public function getReverse()
+    {
+        $opcode = new OpCode();
+        $opcode->rangeLeft = $this->rangeRight;
+        $opcode->rangeRight = $this->rangeLeft;
+        if ($this->operation === self::INSERT || $this->operation === self::DELETE) {
+            $opcode->operation = self::INSERT + self::DELETE - $this->operation;
+        } else {
+            $opcode->operation = $this->operation;
+        }
+        return $opcode;
     }
 } 
