@@ -17,7 +17,7 @@ class OpCode extends RangePair
     const REPLACE = 4;
 
     /** @var  int */
-    private $tag;
+    private $operation;
 
     public function __construct(RangePair $pair)
     {
@@ -30,17 +30,17 @@ class OpCode extends RangePair
      *
      * @return OpCode self-reference
      */
-    public function setTag($tag)
+    public function setOperation($tag)
     {
-        $this->tag = $tag;
+        $this->operation = $tag;
         return $this;
     }
 
     /**
      * @return int
      */
-    public function getTag()
+    public function getOperation()
     {
-        return $this->tag;
+        return $this->operation;
     }
 } 

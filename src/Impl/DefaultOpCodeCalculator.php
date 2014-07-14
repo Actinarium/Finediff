@@ -109,14 +109,13 @@ class DefaultOpCodeCalculator
         $matchingBlocks = & $blocksMetadata->getMatchingBlocks();
 
         foreach ($matchingBlocks as &$block) {
-            $matchOpCode = (new OpCode($block))->setTag(OpCode::EQUAL);
+            $matchOpCode = new OpCode($block);
+            $matchOpCode->setOperation(OpCode::EQUAL);
 
             // Check for the opcode between the last and current matching blocks
             $extraOpCode = $this->getOpCodeBefore($block, $pointerLeft, $pointerRight);
             if ($extraOpCode !== null) {
                 $opCodes[] = $extraOpCode;
-            } else {
-                throw new \LogicException("Something really weird happened that shouldn't have happened");
             }
 
             $opCodes[] = $matchOpCode;
@@ -170,28 +169,31 @@ class DefaultOpCodeCalculator
         $extraOpCode = null;
         if ($isGapInLeft && $isGapInRight) {
             // If there were non-matching lines between matching blocks in both sequences - then it's replacement
-            $extraOpCode = (new OpCode(
+            $extraOpCode = new OpCode(
                 new RangePair(
                     new Range($pointerLeft, $block->getRangeLeft()->getIndexLow() - 1),
                     new Range($pointerRight, $block->getRangeRight()->getIndexLow() - 1)
                 )
-            ))->setTag(OpCode::REPLACE);
+            );
+            $extraOpCode->setOperation(OpCode::REPLACE);
         } elseif ($isGapInLeft) {
             // If there was only gap in the left but no lines on the right, then that's a removal
-            $extraOpCode = (new OpCode(
+            $extraOpCode = new OpCode(
                 new RangePair(
                     new Range($pointerLeft, $block->getRangeLeft()->getIndexLow() - 1),
                     new Range($pointerRight, $pointerRight)
                 )
-            ))->setTag(OpCode::DELETE);
+            );
+            $extraOpCode->setOperation(OpCode::DELETE);
         } elseif ($isGapInRight) {
             // If there was only gap in the right but no lines on the left, then that's an insertion
-            $extraOpCode = (new OpCode(
+            $extraOpCode = new OpCode(
                 new RangePair(
                     new Range($pointerLeft, $pointerLeft),
                     new Range($pointerRight, $block->getRangeRight()->getIndexLow() - 1)
                 )
-            ))->setTag(OpCode::DELETE);
+            );
+            $extraOpCode->setOperation(OpCode::DELETE);
         }
         return $extraOpCode;
     }
