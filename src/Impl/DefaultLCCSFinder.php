@@ -79,7 +79,7 @@ class DefaultLCCSFinder implements LCCSFinder
                 $pointer++;
                 continue;
             }
-            foreach ($matchIndices as $matchIndex) {
+            foreach ($matchIndices as &$matchIndex) {
                 // Ignore matches outside given index window
                 if ($matchIndex < $ranges->getRangeLeft()->getIndexLow()) {
                     continue;

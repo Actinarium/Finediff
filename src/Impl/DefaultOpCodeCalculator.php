@@ -31,8 +31,8 @@ class DefaultOpCodeCalculator
      *                                  compare multiple sequences against one, use it as a base
      * @param Sequence        $test     The sequence to compare against the base
      *
-     * @return RangePair[] Range pairs for blocks that matched in both sequences, sorted by their appearance order.
-     *                     Left range always corresponds to base, right range corresponds to test
+     * @return BlocksMetadata Range pairs for blocks that matched in both sequences, sorted by their appearance order.
+     *                        Left range always corresponds to base, right range corresponds to test
      */
     public function getMatchingBlocks(IndexedSequence $base, Sequence $test)
     {
@@ -87,18 +87,56 @@ class DefaultOpCodeCalculator
         // use the concept of junk in our implementation, that will never be a problem, because LCCSFinder will always
         // expand itself to the largest possible match, and the lines around matched blocks will always be non-equal
 
-        return $matchingBlocks;
+        return new BlocksMetadata($matchingBlocks, $base->getLength(), $test->getLength());
     }
 
     /**
      * Calculate sequence of opcodes for given matching blocks
      *
-     * @param RangePair[] $matchingBlocks An array of range pairs describing matches in sequences,
-     *                                    <b>sorted</b> by their appearance in the sequences (otherwise will misbehave!)
+     * @param BlocksMetadata $blocksMetadata An array of range pairs describing matches in sequences, <b>sorted</b>
+     *                                       by their appearance in the sequences (otherwise will misbehave!)
+     *
+     * @return OpCode[] Sequence of opcodes
+     * @throws \LogicException In case of solar eclipse
      */
-    public function getOpCodes(array $matchingBlocks)
+    public function getOpCodes(BlocksMetadata $blocksMetadata)
     {
-        // todo;
+        // Initialize pointers to store last matching block ends, and an array for opcodes
+        $pointerLeft = 0;
+        $pointerRight = 0;
+        $opCodes = array();
+
+        $matchingBlocks = & $blocksMetadata->getMatchingBlocks();
+
+        foreach ($matchingBlocks as &$block) {
+            $matchOpCode = (new OpCode($block))->setTag(OpCode::EQUAL);
+
+            // Check for the opcode between the last and current matching blocks
+            $extraOpCode = $this->getOpCodeBefore($block, $pointerLeft, $pointerRight);
+            if ($extraOpCode !== null) {
+                $opCodes[] = $extraOpCode;
+            } else {
+                throw new \LogicException("Something really weird happened that shouldn't have happened");
+            }
+
+            $opCodes[] = $matchOpCode;
+
+            // Move the pointers to the next after current match
+            $pointerLeft = $matchOpCode->getRangeLeft()->getIndexHigh() + 1;
+            $pointerRight = $matchOpCode->getRangeRight()->getIndexHigh() + 1;
+        }
+
+        // Check whether there's a block after the last matching block before the end of sequences
+        $bogusPair = new RangePair(
+            new Range($blocksMetadata->getLengthLeft(), $blocksMetadata->getLengthLeft()),
+            new Range($blocksMetadata->getLengthRight(), $blocksMetadata->getLengthRight())
+        );
+        $lastOpCode = $this->getOpCodeBefore($bogusPair, $pointerLeft, $pointerRight);
+        if ($lastOpCode !== null) {
+            $opCodes[] = $lastOpCode;
+        }
+
+        return $opCodes;
     }
 
     /**
@@ -114,5 +152,47 @@ class DefaultOpCodeCalculator
                 return $a->getRangeLeft()->getIndexLow() - $b->getRangeLeft()->getIndexLow();
             }
         );
+    }
+
+    /**
+     * Determine if there is a block between given block and two pointers
+     *
+     * @param RangePair $block        Given (next) block
+     * @param int       $pointerLeft  Pointer in the left sequence (index at element following the one from last match)
+     * @param int       $pointerRight Pointer in the right sequence (index at element following the one from last match)
+     *
+     * @return OpCode|null
+     */
+    private function getOpCodeBefore(RangePair $block, &$pointerLeft, &$pointerRight)
+    {
+        $isGapInLeft = $block->getRangeLeft()->getIndexLow() > $pointerLeft;
+        $isGapInRight = $block->getRangeRight()->getIndexLow() > $pointerRight;
+        $extraOpCode = null;
+        if ($isGapInLeft && $isGapInRight) {
+            // If there were non-matching lines between matching blocks in both sequences - then it's replacement
+            $extraOpCode = (new OpCode(
+                new RangePair(
+                    new Range($pointerLeft, $block->getRangeLeft()->getIndexLow() - 1),
+                    new Range($pointerRight, $block->getRangeRight()->getIndexLow() - 1)
+                )
+            ))->setTag(OpCode::REPLACE);
+        } elseif ($isGapInLeft) {
+            // If there was only gap in the left but no lines on the right, then that's a removal
+            $extraOpCode = (new OpCode(
+                new RangePair(
+                    new Range($pointerLeft, $block->getRangeLeft()->getIndexLow() - 1),
+                    new Range($pointerRight, $pointerRight)
+                )
+            ))->setTag(OpCode::DELETE);
+        } elseif ($isGapInRight) {
+            // If there was only gap in the right but no lines on the left, then that's an insertion
+            $extraOpCode = (new OpCode(
+                new RangePair(
+                    new Range($pointerLeft, $pointerLeft),
+                    new Range($pointerRight, $block->getRangeRight()->getIndexLow() - 1)
+                )
+            ))->setTag(OpCode::DELETE);
+        }
+        return $extraOpCode;
     }
 } 
