@@ -8,7 +8,7 @@
 namespace Actinarium\Finediff\Model;
 
 
-class OpCode
+class OpCode extends RangePair
 {
     const IGNORE = 'x';
     const EQUAL = 'e';
@@ -16,42 +16,27 @@ class OpCode
     const DELETE = 'd';
     const REPLACE = 'r';
 
-    /** @var int */
+    /** @var string */
     private $operation;
-    /** @var int */
-    private $leftLength;
-    /** @var int */
-    private $rightLength;
 
-    function __construct($operation, $leftLength, $rightLength)
+    /**
+     * @param Range $rangeLeft
+     * @param Range $rangeRight
+     * @param string $operation
+     */
+    function __construct(Range $rangeLeft, Range $rangeRight, $operation)
     {
+        $this->rangeLeft = $rangeLeft;
+        $this->rangeRight = $rangeRight;
         $this->operation = $operation;
-        $this->leftLength = $leftLength;
-        $this->rightLength = $rightLength;
     }
 
     /**
-     * @return int
+     * @return string
      */
     public function getOperation()
     {
         return $this->operation;
-    }
-
-    /**
-     * @return int
-     */
-    public function getLeftLength()
-    {
-        return $this->leftLength;
-    }
-
-    /**
-     * @return int
-     */
-    public function getRightLength()
-    {
-        return $this->rightLength;
     }
 
     /**
@@ -68,6 +53,6 @@ class OpCode
         } else {
             $operation = $this->operation;
         }
-        return new OpCode($this->rightLength, $this->leftLength, $operation);
+        return new OpCode($this->rangeRight, $this->rangeLeft, $operation);
     }
 } 

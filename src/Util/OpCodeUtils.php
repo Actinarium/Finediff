@@ -10,6 +10,7 @@ namespace Actinarium\Finediff\Util;
 
 use Actinarium\Finediff\Model\OpCode;
 use Actinarium\Finediff\Model\OpCodeGroup;
+use Actinarium\Finediff\Model\Range;
 
 final class OpCodeUtils
 {
@@ -42,23 +43,41 @@ final class OpCodeUtils
         foreach ($opCodes as &$opCode) {
             if ($opCode->getOperation() === OpCode::REPLACE) {
                 if ($insertFirst) {
-                    // todo
-                } else {
+                    $from = $opCode->getRangeLeft()->getFrom();
+                    $to = $opCode->getRangeRight()->getTo();
+                    $insertOpCode = new OpCode(
+                        new Range($from, $from),
+                        $opCode->getRangeRight(),
+                        OpCode::INSERT
+                    );
                     $deleteOpCode = new OpCode(
                         $opCode->getRangeLeft(),
-                        $opCode->getRangeRight()->setTo($opCode->getRangeRight()->getFrom())
+                        new Range($to, $to),
+                        OpCode::DELETE
+                    );
+                    $out[] = $insertOpCode;
+                    $out[] = $deleteOpCode;
+                } else {
+                    $from = $opCode->getRangeRight()->getFrom();
+                    $to = $opCode->getRangeLeft()->getTo();
+                    $deleteOpCode = new OpCode(
+                        $opCode->getRangeLeft(),
+                        new Range($from, $from),
+                        OpCode::DELETE
                     );
                     $insertOpCode = new OpCode(
-                        $opCode->getRangeLeft()->setFrom($opCode->getRangeLeft()->getTo()),
-                        $opCode->getRangeRight()
+                        new Range($to, $to),
+                        $opCode->getRangeRight(),
+                        OpCode::INSERT
                     );
+                    $out[] = $deleteOpCode;
+                    $out[] = $insertOpCode;
                 }
             } else {
                 $out[] = $opCode;
             }
         }
         return $out;
-
     }
 
     /**

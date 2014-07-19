@@ -25,7 +25,7 @@ $b = explode("\r\n", file_get_contents(dirname(__FILE__) . '/bb.txt'));
 $sequence1 = new SimpleSequenceImpl($a);
 $sequence2 = new SimpleSequenceImpl($b);
 
-//$opcodes = $calculator->getOpCodes($sequence1, $sequence2);
+$opcodes = $calculator->getOpCodes($sequence1, $sequence2);
 
 for ($j = 0; $j < 5; $j++) {
     $before = microtime(true);
