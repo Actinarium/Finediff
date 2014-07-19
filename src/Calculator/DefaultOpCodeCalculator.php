@@ -52,8 +52,11 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
         $matchingBlocks = & $blocksMetadata->getMatchingBlocks();
 
         foreach ($matchingBlocks as &$block) {
-            $matchOpCode = new OpCode($block);
-            $matchOpCode->setOperation(OpCode::EQUAL);
+            $matchOpCode = new OpCode(
+                OpCode::EQUAL,
+                $block->getRangeLeft()->getLength(),
+                $block->getRangeRight()->getLength()
+            );
 
             // Check for the opcode between the last and current matching blocks
             $extraOpCode = $this->getOpCodeBefore($block, $pointerLeft, $pointerRight);
@@ -64,8 +67,8 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
             $opCodes[] = $matchOpCode;
 
             // Move the pointers to the next after current match
-            $pointerLeft = $matchOpCode->getRangeLeft()->getTo();
-            $pointerRight = $matchOpCode->getRangeRight()->getTo();
+            $pointerLeft = $block->getRangeLeft()->getTo();
+            $pointerRight = $block->getRangeRight()->getTo();
         }
 
         // Check whether there's a block after the last matching block before the end of sequences
@@ -181,30 +184,24 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
         if ($isGapInLeft && $isGapInRight) {
             // If there were non-matching lines between matching blocks in both sequences - then it's replacement
             $extraOpCode = new OpCode(
-                new RangePair(
-                    new Range($pointerLeft, $block->getRangeLeft()->getFrom()),
-                    new Range($pointerRight, $block->getRangeRight()->getFrom())
-                )
+                OpCode::REPLACE,
+                $block->getRangeLeft()->getFrom() - $pointerLeft,
+                $block->getRangeRight()->getFrom() - $pointerRight
             );
-            $extraOpCode->setOperation(OpCode::REPLACE);
         } elseif ($isGapInLeft) {
             // If there was only gap in the left but no lines on the right, then that's a removal
             $extraOpCode = new OpCode(
-                new RangePair(
-                    new Range($pointerLeft, $block->getRangeLeft()->getFrom()),
-                    new Range($pointerRight, $pointerRight)
-                )
+                OpCode::DELETE,
+                $block->getRangeLeft()->getFrom() - $pointerLeft,
+                0
             );
-            $extraOpCode->setOperation(OpCode::DELETE);
         } elseif ($isGapInRight) {
             // If there was only gap in the right but no lines on the left, then that's an insertion
             $extraOpCode = new OpCode(
-                new RangePair(
-                    new Range($pointerLeft, $pointerLeft),
-                    new Range($pointerRight, $block->getRangeRight()->getFrom())
-                )
+                OpCode::INSERT,
+                0,
+                $block->getRangeRight()->getFrom() - $pointerRight
             );
-            $extraOpCode->setOperation(OpCode::INSERT);
         }
         return $extraOpCode;
     }

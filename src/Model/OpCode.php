@@ -8,7 +8,7 @@
 namespace Actinarium\Finediff\Model;
 
 
-class OpCode extends RangePair
+class OpCode
 {
     const IGNORE = 'x';
     const EQUAL = 'e';
@@ -16,26 +16,18 @@ class OpCode extends RangePair
     const DELETE = 'd';
     const REPLACE = 'r';
 
-    /** @var  int */
+    /** @var int */
     private $operation;
+    /** @var int */
+    private $leftLength;
+    /** @var int */
+    private $rightLength;
 
-    public function __construct(RangePair $pair = null)
+    function __construct($operation, $leftLength, $rightLength)
     {
-        if ($pair !== null) {
-            $this->rangeLeft = $pair->getRangeLeft();
-            $this->rangeRight = $pair->getRangeRight();
-        }
-    }
-
-    /**
-     * @param int $tag
-     *
-     * @return OpCode self-reference
-     */
-    public function setOperation($tag)
-    {
-        $this->operation = $tag;
-        return $this;
+        $this->operation = $operation;
+        $this->leftLength = $leftLength;
+        $this->rightLength = $rightLength;
     }
 
     /**
@@ -47,20 +39,35 @@ class OpCode extends RangePair
     }
 
     /**
+     * @return int
+     */
+    public function getLeftLength()
+    {
+        return $this->leftLength;
+    }
+
+    /**
+     * @return int
+     */
+    public function getRightLength()
+    {
+        return $this->rightLength;
+    }
+
+    /**
      * Get a reverse operational code that defines a change from test sequence to base
      *
      * @return OpCode Operational code reverted to current
      */
     public function getReverse()
     {
-        $opcode = new OpCode();
-        $opcode->rangeLeft = $this->rangeRight;
-        $opcode->rangeRight = $this->rangeLeft;
-        if ($this->operation === self::INSERT || $this->operation === self::DELETE) {
-            $opcode->operation = self::INSERT + self::DELETE - $this->operation;
+        if ($this->operation === self::INSERT) {
+            $operation = self::DELETE;
+        } elseif ($this->operation === self::DELETE) {
+            $operation = self::INSERT;
         } else {
-            $opcode->operation = $this->operation;
+            $operation = $this->operation;
         }
-        return $opcode;
+        return new OpCode($this->rightLength, $this->leftLength, $operation);
     }
 } 

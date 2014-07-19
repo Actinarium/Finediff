@@ -25,12 +25,13 @@ $b = explode("\r\n", file_get_contents(dirname(__FILE__) . '/bb.txt'));
 $sequence1 = new SimpleSequenceImpl($a);
 $sequence2 = new SimpleSequenceImpl($b);
 
-$opcodes = $calculator->getOpCodes($sequence1, $sequence2);
+//$opcodes = $calculator->getOpCodes($sequence1, $sequence2);
 
 for ($j = 0; $j < 5; $j++) {
     $before = microtime(true);
-    for ($i = 10; $i != 0; $i--) {
+    for ($i = 0; $i < 10; $i++) {
         $calculator->getOpCodes($sequence1, $sequence2);
+//        $sequence1->findOccurrences("");
     }
     $after = microtime(true);
     echo $after-$before . PHP_EOL;

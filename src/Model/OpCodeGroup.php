@@ -35,15 +35,15 @@ class OpCodeGroup {
     }
 
     /**
-     * @param \Actinarium\Finediff\Model\OpCode[] $opcodes
+     * @param \Actinarium\Finediff\Model\OpCode $opcode
 
 
 *
 *@return OpCodeGroup self-reference
      */
-    public function setOpcodes($opcodes)
+    public function addOpcode($opcode)
     {
-        $this->opcodes = $opcodes;
+        $this->opcodes[] = $opcode;
         return $this;
     }
 
