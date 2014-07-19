@@ -23,7 +23,7 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
 
     /**
      * @param \Actinarium\Finediff\MatchFinder\MatchFinder $matchFinder Implementation of longest common contiguous sub-sequence finder (default or
-     *                                custom)
+     *                                                                  custom)
      */
     public function __construct(MatchFinder $matchFinder)
     {
@@ -64,14 +64,14 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
             $opCodes[] = $matchOpCode;
 
             // Move the pointers to the next after current match
-            $pointerLeft = $matchOpCode->getRangeLeft()->getTo() + 1;
-            $pointerRight = $matchOpCode->getRangeRight()->getTo() + 1;
+            $pointerLeft = $matchOpCode->getRangeLeft()->getTo();
+            $pointerRight = $matchOpCode->getRangeRight()->getTo();
         }
 
         // Check whether there's a block after the last matching block before the end of sequences
         $bogusPair = new RangePair(
-            new Range($blocksMetadata->getLengthLeft(), $blocksMetadata->getLengthLeft()),
-            new Range($blocksMetadata->getLengthRight(), $blocksMetadata->getLengthRight())
+            new Range($blocksMetadata->getLengthLeft(), null),
+            new Range($blocksMetadata->getLengthRight(), null)
         );
         $lastOpCode = $this->getOpCodeBefore($bogusPair, $pointerLeft, $pointerRight);
         if ($lastOpCode !== null) {
@@ -96,12 +96,12 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
     private function getMatchingBlocks(IndexedSequence $base, Sequence $test)
     {
         $fullRanges = new RangePair(
-            new Range(0, $base->getLength() - 1),
-            new Range(0, $test->getLength() - 1)
+            new Range(0, $base->getLength()),
+            new Range(0, $test->getLength())
         );
 
         // Initialize empty array for matching blocks
-        /** @var \Actinarium\Finediff\Model\RangePair[] $matchingBlocks */
+        /** @var RangePair[] $matchingBlocks */
         $matchingBlocks = array();
 
         // Instead of finding matches recursively, use the stack to store blocks between matches.
@@ -120,8 +120,8 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
                 ) {
                     // Don't worry, ranges are immutable, and using a setter will return a new object
                     $subRangesToTheLeft = new RangePair(
-                        $currentWindow->getRangeLeft()->setTo($match->getRangeLeft()->getFrom() - 1),
-                        $currentWindow->getRangeRight()->setTo($match->getRangeRight()->getFrom() - 1)
+                        $currentWindow->getRangeLeft()->setTo($match->getRangeLeft()->getFrom()),
+                        $currentWindow->getRangeRight()->setTo($match->getRangeRight()->getFrom())
                     );
                     $stack[] = $subRangesToTheLeft;
                 }
@@ -131,8 +131,8 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
                     && $match->getRangeRight()->getTo() < $currentWindow->getRangeRight()->getTo()
                 ) {
                     $subRangesToTheRight = new RangePair(
-                        $currentWindow->getRangeLeft()->setFrom($match->getRangeLeft()->getTo() + 1),
-                        $currentWindow->getRangeRight()->setFrom($match->getRangeRight()->getTo() + 1)
+                        $currentWindow->getRangeLeft()->setFrom($match->getRangeLeft()->getTo()),
+                        $currentWindow->getRangeRight()->setFrom($match->getRangeRight()->getTo())
                     );
                     $stack[] = $subRangesToTheRight;
                 }
@@ -166,20 +166,12 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
 
     /**
      * Determine if there is a block between given block and a pair of pointers
-
-
-
-
-*
-*@param \Actinarium\Finediff\Model\RangePair $block        Given (next) block
+     *
+     * @param RangePair $block        Given (next) block
      * @param int       $pointerLeft  Pointer in the left sequence (index at element following the one from last match)
      * @param int       $pointerRight Pointer in the right sequence (index at element following the one from last match)
-
-
-
-
-*
-*@return \Actinarium\Finediff\Model\OpCode|null
+     *
+     * @return OpCode|null
      */
     private function getOpCodeBefore(RangePair $block, &$pointerLeft, &$pointerRight)
     {
@@ -190,8 +182,8 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
             // If there were non-matching lines between matching blocks in both sequences - then it's replacement
             $extraOpCode = new OpCode(
                 new RangePair(
-                    new Range($pointerLeft, $block->getRangeLeft()->getFrom() - 1),
-                    new Range($pointerRight, $block->getRangeRight()->getFrom() - 1)
+                    new Range($pointerLeft, $block->getRangeLeft()->getFrom()),
+                    new Range($pointerRight, $block->getRangeRight()->getFrom())
                 )
             );
             $extraOpCode->setOperation(OpCode::REPLACE);
@@ -199,7 +191,7 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
             // If there was only gap in the left but no lines on the right, then that's a removal
             $extraOpCode = new OpCode(
                 new RangePair(
-                    new Range($pointerLeft, $block->getRangeLeft()->getFrom() - 1),
+                    new Range($pointerLeft, $block->getRangeLeft()->getFrom()),
                     new Range($pointerRight, $pointerRight)
                 )
             );
@@ -209,10 +201,10 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
             $extraOpCode = new OpCode(
                 new RangePair(
                     new Range($pointerLeft, $pointerLeft),
-                    new Range($pointerRight, $block->getRangeRight()->getFrom() - 1)
+                    new Range($pointerRight, $block->getRangeRight()->getFrom())
                 )
             );
-            $extraOpCode->setOperation(OpCode::DELETE);
+            $extraOpCode->setOperation(OpCode::INSERT);
         }
         return $extraOpCode;
     }

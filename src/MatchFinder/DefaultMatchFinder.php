@@ -38,24 +38,16 @@ class DefaultMatchFinder implements MatchFinder
      * Compares two sequences to find the longest common contiguous sub-sequence. Supports setting the ranges of
      * sequences to search within so that we can pass the same sequence around with different ranges instead of
      * inefficiently copying arrays
-
-
-
-
-*
-*@param IndexedSequence $base     Base sequence, which the second sequence will be compared against. The
-     *                                  base sequence is the one that gets indexed for faster search (given
-     *                                  you use the default implementation of Sequence), so if you need to
-     *                                  compare multiple sequences against one, use it as a base
-     * @param Sequence        $test     The sequence to compare against the base
-     * @param \Actinarium\Finediff\Model\RangePair       $ranges   If set, look only within given range of items in given sequences (left
-     *                                  range is for base, right range is for second sequence)
-
-
-
-
-*
-* @return \Actinarium\Finediff\Model\RangePair|null Pair of ranges where match was found, or null in case of no match
+     *
+     * @param IndexedSequence $base   Base sequence, which the second sequence will be compared against. The
+     *                                base sequence is the one that gets indexed for faster search (given
+     *                                you use the default implementation of Sequence), so if you need to
+     *                                compare multiple sequences against one, use it as a base
+     * @param Sequence        $test   The sequence to compare against the base
+     * @param RangePair       $ranges If set, look only within given range of items in given sequences (left
+     *                                range is for base, right range is for second sequence)
+     *
+     * @return RangePair|null Pair of ranges where match was found, or null in case of no match
      */
     public function find(IndexedSequence $base, Sequence $test, RangePair $ranges = null)
     {
@@ -119,8 +111,8 @@ class DefaultMatchFinder implements MatchFinder
                     while ($matchIndex - $negativeOffset >= $ranges->getRangeLeft()->getFrom()
                         && $pointer - $negativeOffset >= $ranges->getRangeRight()->getFrom()
                         && $this->strategy->areEqual(
-                                    $baseArray[$matchIndex - $negativeOffset],
-                                    $testArray[$pointer - $negativeOffset]
+                                          $baseArray[$matchIndex - $negativeOffset],
+                                          $testArray[$pointer - $negativeOffset]
                         )
                     ) {
                         $negativeOffset++;
@@ -143,8 +135,8 @@ class DefaultMatchFinder implements MatchFinder
             return null;
         } else {
             return new RangePair(
-                new Range($bestBaseLowIndex, $bestBaseLowIndex + $bestMatchLength - 1),
-                new Range($bestTestLowIndex, $bestTestLowIndex + $bestMatchLength - 1)
+                new Range($bestBaseLowIndex, $bestBaseLowIndex + $bestMatchLength),
+                new Range($bestTestLowIndex, $bestTestLowIndex + $bestMatchLength)
             );
         }
     }

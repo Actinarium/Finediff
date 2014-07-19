@@ -10,11 +10,11 @@ namespace Actinarium\Finediff\Model;
 
 class OpCode extends RangePair
 {
-    const IGNORE = 0;
-    const EQUAL = 1;
-    const INSERT = 2;
-    const DELETE = 3;
-    const REPLACE = 4;
+    const IGNORE = 'x';
+    const EQUAL = 'e';
+    const INSERT = 'i';
+    const DELETE = 'd';
+    const REPLACE = 'r';
 
     /** @var  int */
     private $operation;
