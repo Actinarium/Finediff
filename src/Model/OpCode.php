@@ -5,7 +5,7 @@
  * Time: 2:29
  */
 
-namespace Actinarium\Finediff\Impl;
+namespace Actinarium\Finediff\Model;
 
 
 class OpCode extends RangePair

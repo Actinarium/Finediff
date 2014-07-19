@@ -5,7 +5,7 @@
  * Time: 20:28
  */
 
-namespace Actinarium\Finediff\Core;
+namespace Actinarium\Finediff\Comparison;
 
 
 interface StringComparisonStrategy

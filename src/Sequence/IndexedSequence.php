@@ -5,8 +5,10 @@
  * Time: 18:02
  */
 
-namespace Actinarium\Finediff\Core;
+namespace Actinarium\Finediff\Sequence;
 
+
+use int;
 
 interface IndexedSequence extends Sequence
 {

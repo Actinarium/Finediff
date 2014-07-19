@@ -5,7 +5,7 @@
  * Time: 1:48
  */
 
-namespace Actinarium\Finediff\Impl;
+namespace Actinarium\Finediff\Model;
 
 
 class OpCodeGroup {
@@ -35,9 +35,11 @@ class OpCodeGroup {
     }
 
     /**
-     * @param \Actinarium\Finediff\Impl\OpCode[] $opcodes
-     *
-     * @return OpCodeGroup self-reference
+     * @param \Actinarium\Finediff\Model\OpCode[] $opcodes
+
+
+*
+*@return OpCodeGroup self-reference
      */
     public function setOpcodes($opcodes)
     {
@@ -46,7 +48,7 @@ class OpCodeGroup {
     }
 
     /**
-     * @return \Actinarium\Finediff\Impl\OpCode[]
+     * @return \Actinarium\Finediff\Model\OpCode[]
      */
     public function getOpcodes()
     {

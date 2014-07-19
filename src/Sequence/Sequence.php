@@ -5,7 +5,7 @@
  * Time: 17:38
  */
 
-namespace Actinarium\Finediff\Core;
+namespace Actinarium\Finediff\Sequence;
 
 
 interface Sequence

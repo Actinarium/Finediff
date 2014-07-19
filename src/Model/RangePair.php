@@ -5,7 +5,7 @@
  * Time: 17:35
  */
 
-namespace Actinarium\Finediff\Impl;
+namespace Actinarium\Finediff\Model;
 
 /**
  * Holds ranges for two sequences

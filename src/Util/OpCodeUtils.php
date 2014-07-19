@@ -5,8 +5,11 @@
  * Time: 1:41
  */
 
-namespace Actinarium\Finediff\Impl;
+namespace Actinarium\Finediff\Util;
 
+
+use Actinarium\Finediff\Model\OpCode;
+use Actinarium\Finediff\Model\OpCodeGroup;
 
 final class OpCodeUtils
 {
@@ -43,10 +46,10 @@ final class OpCodeUtils
                 } else {
                     $deleteOpCode = new OpCode(
                         $opCode->getRangeLeft(),
-                        $opCode->getRangeRight()->setIndexHigh($opCode->getRangeRight()->getIndexLow())
+                        $opCode->getRangeRight()->setTo($opCode->getRangeRight()->getFrom())
                     );
                     $insertOpCode = new OpCode(
-                        $opCode->getRangeLeft()->setIndexLow($opCode->getRangeLeft()->getIndexHigh()),
+                        $opCode->getRangeLeft()->setFrom($opCode->getRangeLeft()->getTo()),
                         $opCode->getRangeRight()
                     );
                 }

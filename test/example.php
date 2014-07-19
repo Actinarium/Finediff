@@ -10,22 +10,39 @@ namespace Actinarium\Finediff\Test;
 
 include "../vendor/autoload.php";
 
-use Actinarium\Finediff\Impl\DefaultLCCSFinder;
-use Actinarium\Finediff\Impl\DefaultOpCodeCalculator;
-use Actinarium\Finediff\Impl\DefaultStringComparisonStrategy;
-use Actinarium\Finediff\Impl\SimpleSequenceImpl;
+use Actinarium\Finediff\Calculator\DefaultOpCodeCalculator;
+use Actinarium\Finediff\Comparison\DefaultStringComparisonStrategy;
+use Actinarium\Finediff\MatchFinder\DefaultMatchFinder;
+use Actinarium\Finediff\Sequence\SimpleSequenceImpl;
 
 $strategy = new DefaultStringComparisonStrategy();
-$finder = new DefaultLCCSFinder($strategy);
+$finder = new DefaultMatchFinder($strategy);
 $calculator = new DefaultOpCodeCalculator($finder);
 
-$a = explode("\r\n", file_get_contents(dirname(__FILE__).'/a.txt'));
-$b = explode("\r\n", file_get_contents(dirname(__FILE__).'/b.txt'));
+$a = explode("\r\n", file_get_contents(dirname(__FILE__) . '/aa.txt'));
+$b = explode("\r\n", file_get_contents(dirname(__FILE__) . '/bb.txt'));
 
 $sequence1 = new SimpleSequenceImpl($a);
 $sequence2 = new SimpleSequenceImpl($b);
 
-$blocks = $calculator->getMatchingBlocks($sequence1, $sequence2);
-$opcodes = $calculator->getOpCodes($blocks);
+$opcodes = $calculator->getOpCodes($sequence1, $sequence2);
 
-sleep(1);
+for ($j = 0; $j < 5; $j++) {
+    $before = microtime(true);
+    for ($i = 10; $i != 0; $i--) {
+        $calculator->getOpCodes($sequence1, $sequence2);
+    }
+    $after = microtime(true);
+    echo $after-$before . PHP_EOL;
+}
+
+die;
+
+for ($j = 0; $j < 5; $j++) {
+    $before = microtime(true);
+    for ($i = 99999; $i != 0; $i--) {
+        array_slice($a, 1, -1);
+    }
+    $after = microtime(true);
+    echo $after-$before . PHP_EOL;
+}

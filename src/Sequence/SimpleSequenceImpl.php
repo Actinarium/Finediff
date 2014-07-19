@@ -5,10 +5,11 @@
  * Time: 18:02
  */
 
-namespace Actinarium\Finediff\Impl;
+namespace Actinarium\Finediff\Sequence;
 
 
-use Actinarium\Finediff\Core\IndexedSequence;
+use int;
+use string;
 
 class SimpleSequenceImpl implements IndexedSequence
 {

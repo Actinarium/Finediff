@@ -5,24 +5,27 @@
  * Time: 15:53
  */
 
-namespace Actinarium\Finediff\Impl;
+namespace Actinarium\Finediff\Calculator;
 
 
-use Actinarium\Finediff\Core\IndexedSequence;
-use Actinarium\Finediff\Core\LCCSFinder;
-use Actinarium\Finediff\Core\OpCodeCalculator;
-use Actinarium\Finediff\Core\Sequence;
+use Actinarium\Finediff\MatchFinder\MatchFinder;
+use Actinarium\Finediff\Model\BlocksMetadata;
+use Actinarium\Finediff\Model\OpCode;
+use Actinarium\Finediff\Model\Range;
+use Actinarium\Finediff\Model\RangePair;
+use Actinarium\Finediff\Sequence\IndexedSequence;
+use Actinarium\Finediff\Sequence\Sequence;
 
 class DefaultOpCodeCalculator implements OpCodeCalculator
 {
-    /** @var  LCCSFinder */
+    /** @var  MatchFinder */
     private $matchFinder;
 
     /**
-     * @param LCCSFinder $matchFinder Implementation of longest common contiguous sub-sequence finder (default or
+     * @param \Actinarium\Finediff\MatchFinder\MatchFinder $matchFinder Implementation of longest common contiguous sub-sequence finder (default or
      *                                custom)
      */
-    public function __construct(LCCSFinder $matchFinder)
+    public function __construct(MatchFinder $matchFinder)
     {
         $this->matchFinder = $matchFinder;
     }
@@ -61,8 +64,8 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
             $opCodes[] = $matchOpCode;
 
             // Move the pointers to the next after current match
-            $pointerLeft = $matchOpCode->getRangeLeft()->getIndexHigh() + 1;
-            $pointerRight = $matchOpCode->getRangeRight()->getIndexHigh() + 1;
+            $pointerLeft = $matchOpCode->getRangeLeft()->getTo() + 1;
+            $pointerRight = $matchOpCode->getRangeRight()->getTo() + 1;
         }
 
         // Check whether there's a block after the last matching block before the end of sequences
@@ -98,7 +101,7 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
         );
 
         // Initialize empty array for matching blocks
-        /** @var RangePair[] $matchingBlocks */
+        /** @var \Actinarium\Finediff\Model\RangePair[] $matchingBlocks */
         $matchingBlocks = array();
 
         // Instead of finding matches recursively, use the stack to store blocks between matches.
@@ -112,24 +115,24 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
                 $matchingBlocks[] = $match;
 
                 // If both sequences have elements to the left of the matched block, push it to the stack
-                if ($match->getRangeLeft()->getIndexLow() > $currentWindow->getRangeLeft()->getIndexLow()
-                    && $match->getRangeRight()->getIndexLow() > $currentWindow->getRangeRight()->getIndexLow()
+                if ($match->getRangeLeft()->getFrom() > $currentWindow->getRangeLeft()->getFrom()
+                    && $match->getRangeRight()->getFrom() > $currentWindow->getRangeRight()->getFrom()
                 ) {
                     // Don't worry, ranges are immutable, and using a setter will return a new object
                     $subRangesToTheLeft = new RangePair(
-                        $currentWindow->getRangeLeft()->setIndexHigh($match->getRangeLeft()->getIndexLow() - 1),
-                        $currentWindow->getRangeRight()->setIndexHigh($match->getRangeRight()->getIndexLow() - 1)
+                        $currentWindow->getRangeLeft()->setTo($match->getRangeLeft()->getFrom() - 1),
+                        $currentWindow->getRangeRight()->setTo($match->getRangeRight()->getFrom() - 1)
                     );
                     $stack[] = $subRangesToTheLeft;
                 }
 
                 // If both sequences have elements to the right of the matched block, push it to the stack
-                if ($match->getRangeLeft()->getIndexHigh() < $currentWindow->getRangeLeft()->getIndexHigh()
-                    && $match->getRangeRight()->getIndexHigh() < $currentWindow->getRangeRight()->getIndexHigh()
+                if ($match->getRangeLeft()->getTo() < $currentWindow->getRangeLeft()->getTo()
+                    && $match->getRangeRight()->getTo() < $currentWindow->getRangeRight()->getTo()
                 ) {
                     $subRangesToTheRight = new RangePair(
-                        $currentWindow->getRangeLeft()->setIndexLow($match->getRangeLeft()->getIndexHigh() + 1),
-                        $currentWindow->getRangeRight()->setIndexLow($match->getRangeRight()->getIndexHigh() + 1)
+                        $currentWindow->getRangeLeft()->setFrom($match->getRangeLeft()->getTo() + 1),
+                        $currentWindow->getRangeRight()->setFrom($match->getRangeRight()->getTo() + 1)
                     );
                     $stack[] = $subRangesToTheRight;
                 }
@@ -140,7 +143,7 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
         $this->sortMatchingBlocks($matchingBlocks);
 
         // The difflib.py implementation features an adjacent block collapsing routine here. Seems like since we don't
-        // use the concept of junk in our implementation, that will never be a problem, because LCCSFinder will always
+        // use the concept of junk in our implementation, that will never be a problem, because MatchFinder will always
         // expand itself to the largest possible match, and the lines around matched blocks will always be non-equal
 
         return new BlocksMetadata($matchingBlocks, $base->getLength(), $test->getLength());
@@ -156,31 +159,39 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
         usort(
             $matchingBlocks,
             function (RangePair $a, RangePair $b) {
-                return $a->getRangeLeft()->getIndexLow() - $b->getRangeLeft()->getIndexLow();
+                return $a->getRangeLeft()->getFrom() - $b->getRangeLeft()->getFrom();
             }
         );
     }
 
     /**
      * Determine if there is a block between given block and a pair of pointers
-     *
-     * @param RangePair $block        Given (next) block
+
+
+
+
+*
+*@param \Actinarium\Finediff\Model\RangePair $block        Given (next) block
      * @param int       $pointerLeft  Pointer in the left sequence (index at element following the one from last match)
      * @param int       $pointerRight Pointer in the right sequence (index at element following the one from last match)
-     *
-     * @return OpCode|null
+
+
+
+
+*
+*@return \Actinarium\Finediff\Model\OpCode|null
      */
     private function getOpCodeBefore(RangePair $block, &$pointerLeft, &$pointerRight)
     {
-        $isGapInLeft = $block->getRangeLeft()->getIndexLow() > $pointerLeft;
-        $isGapInRight = $block->getRangeRight()->getIndexLow() > $pointerRight;
+        $isGapInLeft = $block->getRangeLeft()->getFrom() > $pointerLeft;
+        $isGapInRight = $block->getRangeRight()->getFrom() > $pointerRight;
         $extraOpCode = null;
         if ($isGapInLeft && $isGapInRight) {
             // If there were non-matching lines between matching blocks in both sequences - then it's replacement
             $extraOpCode = new OpCode(
                 new RangePair(
-                    new Range($pointerLeft, $block->getRangeLeft()->getIndexLow() - 1),
-                    new Range($pointerRight, $block->getRangeRight()->getIndexLow() - 1)
+                    new Range($pointerLeft, $block->getRangeLeft()->getFrom() - 1),
+                    new Range($pointerRight, $block->getRangeRight()->getFrom() - 1)
                 )
             );
             $extraOpCode->setOperation(OpCode::REPLACE);
@@ -188,7 +199,7 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
             // If there was only gap in the left but no lines on the right, then that's a removal
             $extraOpCode = new OpCode(
                 new RangePair(
-                    new Range($pointerLeft, $block->getRangeLeft()->getIndexLow() - 1),
+                    new Range($pointerLeft, $block->getRangeLeft()->getFrom() - 1),
                     new Range($pointerRight, $pointerRight)
                 )
             );
@@ -198,7 +209,7 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
             $extraOpCode = new OpCode(
                 new RangePair(
                     new Range($pointerLeft, $pointerLeft),
-                    new Range($pointerRight, $block->getRangeRight()->getIndexLow() - 1)
+                    new Range($pointerRight, $block->getRangeRight()->getFrom() - 1)
                 )
             );
             $extraOpCode->setOperation(OpCode::DELETE);

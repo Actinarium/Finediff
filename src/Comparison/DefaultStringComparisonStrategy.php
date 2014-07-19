@@ -5,10 +5,8 @@
  * Time: 20:29
  */
 
-namespace Actinarium\Finediff\Impl;
+namespace Actinarium\Finediff\Comparison;
 
-
-use Actinarium\Finediff\Core\StringComparisonStrategy;
 
 class DefaultStringComparisonStrategy implements StringComparisonStrategy
 {

@@ -5,7 +5,7 @@
  * Time: 4:08
  */
 
-namespace Actinarium\Finediff\Impl;
+namespace Actinarium\Finediff\Model;
 
 
 class BlocksMetadata
