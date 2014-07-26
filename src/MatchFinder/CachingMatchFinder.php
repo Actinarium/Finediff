@@ -14,16 +14,19 @@ use Actinarium\Finediff\Sequence\IndexedSequence;
 use Actinarium\Finediff\Sequence\Sequence;
 
 /**
- * A simple implementation of longest common contiguous sub-sequence finder based on <a href=
- * "http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/DDJ/1988/8807/8807c/8807c.htm">Gestalt
- * pattern matching approach</a> by John W. Ratcliff and John A. Obershelp
+ * A modification of {@link DefaultMatchFinder} that uses cache to speed up execution at memory usage cost. Unlike the
+ * named one, this matcher should be used as an instance for each calculation, because the cache is stored in
+ * the instance. Also it's assumed that the first {@link #find()} call is about the whole range (this is when the cache
+ * is created), and then matches are removed from the cache when finds are performed in a recursive manner.
  *
  * @package Actinarium\Finediff\SequenceMatcher
  */
-class DefaultMatchFinder implements MatchFinder
+class CachingMatchFinder implements MatchFinder
 {
     /** @var  StringComparisonStrategy */
     private $strategy;
+    /** @var array|null */
+    private $cache;
 
     /**
      * @param StringComparisonStrategy $strategy The string comparison strategy used to verify whether strings are
@@ -51,7 +54,7 @@ class DefaultMatchFinder implements MatchFinder
      */
     public function find(IndexedSequence $base, Sequence $test, RangePair $ranges = null)
     {
-        // If ranges are not set, initialize them with zero to last indices of given sequences
+        // If ranges are not set, initialize them with zero to last indices of given sequences.
         if ($ranges == null) {
             $ranges = new RangePair(
                 new Range(0, $base->getLength()),
@@ -59,17 +62,66 @@ class DefaultMatchFinder implements MatchFinder
             );
         }
 
+        // Initialize cache if not initialized yet
+        if ($this->cache === null) {
+            $this->collectCache($base, $test);
+        }
+
+        // These are the variables we will store info about best match - starting index in A, B, and match size
+        $bestTestLowIndex = 0;
+        $bestMatchLength = 0;
+        $bestBaseLowIndex = 0;
+
+        // Find best match in the cache within given window
+        foreach ($this->cache as $testIndex => $matchesInBase) {
+            if ($testIndex < $ranges->getRangeRight()->getFrom()) {
+                continue;
+            } elseif ($testIndex >= $ranges->getRangeRight()->getTo()) {
+                break;
+            }
+            foreach ($matchesInBase as $baseIndex => $length) {
+                if ($baseIndex < $ranges->getRangeLeft()->getFrom()) {
+                    continue;
+                } elseif ($baseIndex >= $ranges->getRangeLeft()->getTo()) {
+                    break;
+                }
+                if ($length > $bestMatchLength) {
+                    $bestMatchLength = $length;
+                    $bestTestLowIndex = $testIndex;
+                    $bestBaseLowIndex = $baseIndex;
+                }
+            }
+        }
+
+        if ($bestMatchLength === 0) {
+            return null;
+        } else {
+            // Remove best match from cache to speed up subsequent lookup
+            unset($this->cache[$bestTestLowIndex]);
+            return new RangePair(
+                new Range($bestBaseLowIndex, $bestBaseLowIndex + $bestMatchLength),
+                new Range($bestTestLowIndex, $bestTestLowIndex + $bestMatchLength)
+            );
+        }
+    }
+
+    private function collectCache(IndexedSequence $base, Sequence $test)
+    {
+        // Initialize the range to be all lines for both sequences
+        $ranges = new RangePair(
+            new Range(0, $base->getLength()),
+            new Range(0, $test->getLength())
+        );
+
+        // Initialize the cache
+        $this->cache = array();
+
         // Pull out arrays from sequences, for faster access
         $baseArray = & $base->getSequence();
         $testArray = & $test->getSequence();
 
-        // These are the variables we will store info about best match - starting index in A, B, and match size
-        $bestTestLowIndex = 0;
-        $bestBaseLowIndex = 0;
-        $bestMatchLength = 0;
-
-        // Now using the sliding pointer, for each string in tested sequence look up matching string indices in base
-        // sequence. Then for each match find the length of the block
+        // Using the sliding pointer, for each string in tested sequence look up matching string indices in base
+        // sequence. Put every found sequence in the cache
         $pointer = $ranges->getRangeRight()->getFrom();
         $last = $ranges->getRangeRight()->getTo();
         while ($pointer < $last) {
@@ -79,18 +131,10 @@ class DefaultMatchFinder implements MatchFinder
                 $pointer++;
                 continue;
             }
-            foreach ($matchIndices as &$matchIndex) {
-                // Ignore matches outside given index window
-                if ($matchIndex < $ranges->getRangeLeft()->getFrom()) {
-                    continue;
-                } elseif ($matchIndex >= $ranges->getRangeLeft()->getTo()) {
-                    // Since indices are sorted, at this point we know we won't have any more matches in given window
-                    $pointer++;
-                    break;
-                }
 
-                // Otherwise for current match look-ahead how many elements will contiguously match within window
-                // from this starting point (offset is 1 because the element at current pointer is a match already)
+            // Otherwise for current match look-ahead how many elements will contiguously match from this starting
+            // point (offset is 1 because the element at current pointer is a match already)
+            foreach ($matchIndices as &$matchIndex) {
                 $offset = 1;
                 while ($matchIndex + $offset < $ranges->getRangeLeft()->getTo()
                     && $pointer + $offset < $ranges->getRangeRight()->getTo()
@@ -118,26 +162,18 @@ class DefaultMatchFinder implements MatchFinder
                     }
                 }
 
-                // At this point offset will hold the number of elements contiguously matched
+                // At this point offset will hold the number of elements contiguously matched, so add it to the cache
+                $testIndex = $pointer - $negativeOffset;
+                $baseIndex = $matchIndex - $negativeOffset;
                 $length = $offset + $negativeOffset;
-                if ($length > $bestMatchLength) {
-                    $bestMatchLength = $length;
-                    $bestTestLowIndex = $pointer - $negativeOffset;
-                    $bestBaseLowIndex = $matchIndex - $negativeOffset;
+                if (!isset($this->cache[$testIndex])) {
+                    $this->cache[$testIndex] = array();
                 }
+                $this->cache[$testIndex][$baseIndex] = $length;
 
                 // Leap the pointer forward, because there's no reason to go over matched lines again
                 $pointer += $offset;
             }
-        }
-
-        if ($bestMatchLength === 0) {
-            return null;
-        } else {
-            return new RangePair(
-                new Range($bestBaseLowIndex, $bestBaseLowIndex + $bestMatchLength),
-                new Range($bestTestLowIndex, $bestTestLowIndex + $bestMatchLength)
-            );
         }
     }
 } 

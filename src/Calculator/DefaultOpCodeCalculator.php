@@ -8,7 +8,7 @@
 namespace Actinarium\Finediff\Calculator;
 
 
-use Actinarium\Finediff\MatchFinder\MatchFinder;
+use Actinarium\Finediff\MatchFinder\MatchFinderProvider;
 use Actinarium\Finediff\Model\BlocksMetadata;
 use Actinarium\Finediff\Model\OpCode;
 use Actinarium\Finediff\Model\Range;
@@ -18,16 +18,16 @@ use Actinarium\Finediff\Sequence\Sequence;
 
 class DefaultOpCodeCalculator implements OpCodeCalculator
 {
-    /** @var  MatchFinder */
-    private $matchFinder;
+    /** @var  MatchFinderProvider */
+    private $matchFinderProvider;
 
     /**
-     * @param \Actinarium\Finediff\MatchFinder\MatchFinder $matchFinder Implementation of longest common contiguous sub-sequence finder (default or
-     *                                                                  custom)
+     * @param MatchFinderProvider $matchFinderProvider Implementation of longest common contiguous sub-sequence finder
+     *                                                 (default or custom)
      */
-    public function __construct(MatchFinder $matchFinder)
+    public function __construct(MatchFinderProvider $matchFinderProvider)
     {
-        $this->matchFinder = $matchFinder;
+        $this->matchFinderProvider = $matchFinderProvider;
     }
 
     /**
@@ -107,14 +107,29 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
         /** @var RangePair[] $matchingBlocks */
         $matchingBlocks = array();
 
+        // Get match finder from provider
+        $matchFinder = $this->matchFinderProvider->getMatchFinder();
+
         // Instead of finding matches recursively, use the stack to store blocks between matches.
         $stack = array($fullRanges);
         while (!empty($stack)) {
             /** @var RangePair $currentWindow */
             $currentWindow = array_pop($stack);
-            $match = $this->matchFinder->find($base, $test, $currentWindow);
+            $match = $matchFinder->find($base, $test, $currentWindow);
             if ($match !== null) {
                 $matchingBlocks[] = $match;
+
+                // Since the stack is used, it would be more optimal to push the right range first, then the left one
+                // If both sequences have elements to the right of the matched block, push it to the stack
+                if ($match->getRangeLeft()->getTo() < $currentWindow->getRangeLeft()->getTo()
+                    && $match->getRangeRight()->getTo() < $currentWindow->getRangeRight()->getTo()
+                ) {
+                    $subRangesToTheRight = new RangePair(
+                        $currentWindow->getRangeLeft()->setFrom($match->getRangeLeft()->getTo()),
+                        $currentWindow->getRangeRight()->setFrom($match->getRangeRight()->getTo())
+                    );
+                    $stack[] = $subRangesToTheRight;
+                }
 
                 // If both sequences have elements to the left of the matched block, push it to the stack
                 if ($match->getRangeLeft()->getFrom() > $currentWindow->getRangeLeft()->getFrom()
@@ -126,17 +141,6 @@ class DefaultOpCodeCalculator implements OpCodeCalculator
                         $currentWindow->getRangeRight()->setTo($match->getRangeRight()->getFrom())
                     );
                     $stack[] = $subRangesToTheLeft;
-                }
-
-                // If both sequences have elements to the right of the matched block, push it to the stack
-                if ($match->getRangeLeft()->getTo() < $currentWindow->getRangeLeft()->getTo()
-                    && $match->getRangeRight()->getTo() < $currentWindow->getRangeRight()->getTo()
-                ) {
-                    $subRangesToTheRight = new RangePair(
-                        $currentWindow->getRangeLeft()->setFrom($match->getRangeLeft()->getTo()),
-                        $currentWindow->getRangeRight()->setFrom($match->getRangeRight()->getTo())
-                    );
-                    $stack[] = $subRangesToTheRight;
                 }
             }
         }
