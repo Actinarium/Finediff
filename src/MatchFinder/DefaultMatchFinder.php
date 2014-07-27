@@ -125,10 +125,10 @@ class DefaultMatchFinder implements MatchFinder
                     $bestTestLowIndex = $pointer - $negativeOffset;
                     $bestBaseLowIndex = $matchIndex - $negativeOffset;
                 }
-
-                // Leap the pointer forward, because there's no reason to go over matched lines again
-                $pointer += $offset;
             }
+
+            // Move the pointer one step ahead, because there might be longer matches if we start from the second line
+            $pointer++;
         }
 
         if ($bestMatchLength === 0) {
